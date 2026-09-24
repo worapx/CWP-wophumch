@@ -1,4 +1,5 @@
 def checkmate(board: str) -> None:
+    # 1. Parse แปลงข้อความกระดานเป็นตาราง 2 มิติ
     lines = [line for line in board.splitlines() if line]
     if not lines:
         return
@@ -8,12 +9,18 @@ def checkmate(board: str) -> None:
         if len(line) != size:
             return
 
+    grid = [list(line) for line in lines]
+
+    for row in grid:
+        print(" ".join(row))
+    print("-" * 30)
+
     king_pos = None
     enemies = []
 
     for r in range(size):
         for c in range(size):
-            char = lines[r][c]
+            char = grid[r][c]
             if char == 'K':
                 king_pos = (r, c)
             elif char in ('P', 'B', 'R', 'Q'):
@@ -24,49 +31,63 @@ def checkmate(board: str) -> None:
 
     kr, kc = king_pos
 
-    def has_clear_path(er, ec, dr, dc) -> bool:
+    def trace_attack_path(er, ec, dr, dc) -> bool:
         curr_r, curr_c = er + dr, ec + dc
+        path_coordinates = []
+        
         while 0 <= curr_r < size and 0 <= curr_c < size:
             if curr_r == kr and curr_c == kc:
+                for pr, pc in path_coordinates:
+                    grid[pr][pc] = '*'
                 return True
-            if lines[curr_r][curr_c] != '.':
+            if grid[curr_r][curr_c] != '.':
                 return False
+            
+            path_coordinates.append((curr_r, curr_c))
             curr_r += dr
             curr_c += dc
         return False
 
+    attacker = None
     for piece, er, ec in enemies:
-        # --- PAWN (P) ---
+        # --- Pawn (P) ---
         if piece == 'P':
             if er - 1 == kr and (ec - 1 == kc or ec + 1 == kc):
-                print("Success")
-                return
+                attacker = ("Pawn", er, ec)
+                break
 
-        # --- ROOK (R) ---
+        # --- Rook (R) ---
         elif piece == 'R':
             if er == kr or ec == kc:
                 dr = 0 if er == kr else (1 if kr > er else -1)
                 dc = 0 if ec == kc else (1 if kc > ec else -1)
-                if has_clear_path(er, ec, dr, dc):
-                    print("Success")
-                    return
+                if trace_attack_path(er, ec, dr, dc):
+                    attacker = ("Rook", er, ec)
+                    break
 
-        # --- BISHOP (B) ---
+        # --- Bishop {B} ---
         elif piece == 'B':
             if abs(er - kr) == abs(ec - kc):
                 dr = 1 if kr > er else -1
                 dc = 1 if kc > ec else -1
-                if has_clear_path(er, ec, dr, dc):
-                    print("Success")
-                    return
+                if trace_attack_path(er, ec, dr, dc):
+                    attacker = ("Bishop", er, ec)
+                    break
 
-        # --- QUEEN (Q) ---
+        # --- Queen (Q) ---
         elif piece == 'Q':
             if er == kr or ec == kc or abs(er - kr) == abs(ec - kc):
                 dr = 0 if er == kr else (1 if kr > er else -1)
                 dc = 0 if ec == kc else (1 if kc > ec else -1)
-                if has_clear_path(er, ec, dr, dc):
-                    print("Success")
-                    return
+                if trace_attack_path(er, ec, dr, dc):
+                    attacker = ("Queen", er, ec)
+                    break
 
-    print("Fail")
+    if attacker:
+        piece_name = attacker[0]
+        for row in grid:
+            print(" ".join(row))
+        print("-" * 30)
+        print("Success: King is in check by {}!".format(piece_name))
+    else:
+        print("Fail: King is safe!")
